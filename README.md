@@ -23,7 +23,7 @@ Running ./mcas-to-eiq.py with `-h` will display help:
 
 `-v` / `--verbose` will display progress/error info  
 `-s` / `--simulate` do not actually ingest anything into EclecticIQ, just pretend (useful with `-v`)  
-``-d` / `--duplicate` do not update the existing entity in EclecticIQ, but create duplicates (default: disabled)  
+`-d` / `--duplicate` do not update the existing entity in EclecticIQ, but create duplicates (default: disabled)  
 
 # Copyright
 
