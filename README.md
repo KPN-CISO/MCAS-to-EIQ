@@ -1,6 +1,6 @@
 # Introduction
 
-MCAS-to-EIQ is a simple Python script that will connect to your Microsoft Cloud App Security instance, download all Events/Sightings from a given time period and import them into your EclecticIQ instance.
+MCAS-to-EIQ is a simple Python script that will connect to your Microsoft Cloud App Security instance, download all Events/Sightings from a given time period and import them into your EclecticIQ instance as Sightings.
 
 For configuration options, refer to the README.md in the config/ directory.
 
