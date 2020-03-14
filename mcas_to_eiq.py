@@ -62,8 +62,8 @@ def transform(sightings, options):
                             classification = entity.CLASSIFICATION_UNKNOWN
                             to_ids = False
                             eiqtype = False
-                            if type == 'country':
-                                eiqtype = entity.OBSERVABLE_COUNTRY_CODE
+                            #if type == 'country':
+                            #    eiqtype = entity.OBSERVABLE_COUNTRY_CODE
                             if type == 'ip':
                                 try:
                                     socket.inet_aton(name)
@@ -182,10 +182,11 @@ def download(options):
         sightings = []
         has_next = True
         while has_next:
-            jsonresponse = json.loads(requests.post(eventurl,
-                                                    json=request_data,
-                                                    headers=apiheaders,
-                                                    verify=settings.MCASSSLVERIFY).content)
+            postrequest = requests.post(eventurl,
+                                        json=request_data,
+                                        headers=apiheaders,
+                                        verify=settings.MCASSSLVERIFY).content
+            jsonresponse = json.loads(postrequest.decode('utf-8'))
             response = jsonresponse.get('data', [])
             sightings += response
             has_next = jsonresponse.get('hasNext', False)
