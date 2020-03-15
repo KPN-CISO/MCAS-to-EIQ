@@ -83,6 +83,16 @@ def transform(sightings, options):
                                 to_ids = True
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
+                            if type == 'discovery_stream':
+                                description = entity.get_entity_description()
+                                newdescription = description + '<br />Usercategory: '
+                                newdescription += name
+                                entity.set_entity_description(newdescription)
+                            if type == 'discovery_service':
+                                description = entity.get_entity_description()
+                                newdescription = description + '<br />Application: '
+                                newdescription += name
+                                entity.set_entity_description(newdescription)
                             if to_ids:
                                 link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
                                 classification = entity.CLASSIFICATION_BAD
@@ -165,7 +175,7 @@ def download(options):
             "Authorization": "Token {}".format(settings.MCASTOKEN),
         }
         endtime = int(time.time()) * 1000
-        starttime = endtime - (settings.MCASTIME * 1000)
+        starttime = endtime - (int(options.window) * 1000)
         filters = {
             'date': {'gte': starttime}
         }
@@ -211,6 +221,12 @@ def main():
                         action='store_true',
                         default=False,
                         help='[optional] Enable progress/error info (default: disabled)')
+    parser.add_argument('-w', '--window',
+                        dest='window',
+                        default=settings.MCASTIME,
+                        help='[optional] Override time window of MCAS alerts to '
+                             'download, specified in seconds. Default setting '
+                             'from config file is: '+str(settings.MCASTIME))
     parser.add_argument('-t', '--type',
                         dest='type',
                         default='t',
