@@ -14,7 +14,7 @@ For configuration options, refer to the README.md in the config/ directory.
 # Getting started
 
 - Clone the repository
-- Create a 'settings.py' file in the config/ directory (refer to the README.md)
+- Rename `settings.py.sample` file in the `config/` directory to `settings.py` and update settings accordingly.
 - Run ./mcas_to_eiq.py -h for help/options
 
 # Options
