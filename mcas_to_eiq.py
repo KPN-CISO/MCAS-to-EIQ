@@ -4,16 +4,17 @@
 
 # This software is GPLv2 licensed, except where otherwise indicated
 
-import json
-import optparse
-import requests
-import urllib3
+import argparse
 import datetime
-import eiqjson
-import eiqcalls
+import json
 import pprint
 import socket
 import time
+import requests
+import urllib3
+
+import eiqjson
+import eiqcalls
 
 from config import settings
 
@@ -203,49 +204,51 @@ def download(options):
         raise
 
 
-if __name__ == "__main__":
-    cli = optparse.OptionParser(usage="usage: %prog [-v | -t | -s " +
-                                      "| -n | -d | -h]")
-    cli.add_option('-v', '--verbose',
-                   dest='verbose',
-                   action='store_true',
-                   default=False,
-                   help='[optional] Enable progress/error info (default: ' +
-                        'disabled)')
-    cli.add_option('-t', '--type',
-                   dest='type',
-                   default='t',
-                   help='[optional] Set the type of EclecticIQ entity you ' +
-                        'wish to create: [t]tp (default), [s]ighting ' +
-                        'or [i]ndicator. Not all entity types support all ' +
-                        'observables/extracts! Nested objects in the MCAS ' +
-                        'Event will be created as indicators and linked to ' +
-                        'the TTP.')
-    cli.add_option('-s', '--simulate',
-                   dest='simulate',
-                   action='store_true',
-                   default=False,
-                   help='[optional] Do not actually ingest anything into ' +
-                        'EIQ, just simulate everything. Mostly useful with ' +
-                        'the -v/--verbose flag.')
-    cli.add_option('-n', '--name',
-                   dest='name',
-                   default=settings.TITLETAG,
-                   help='[optional] Override the default TITLETAG name from ' +
-                        'the configuration file (default: TITLETAG in' +
-                        'settings.py)')
-    cli.add_option('-d', '--duplicate',
-                   dest='duplicate',
-                   action='store_true',
-                   default=False,
-                   help='[optional] Do not update the existing EclecticIQ ' +
-                        'entity, but create a new one (default: disabled)')
-    (options, args) = cli.parse_args()
-    sightings = download(options)
+def main():
+    parser = argparse.ArgumentParser(description='MCAS to EIQ converter')
+    parser.add_argument('-v', '--verbose',
+                        dest='verbose',
+                        action='store_true',
+                        default=False,
+                        help='[optional] Enable progress/error info (default: disabled)')
+    parser.add_argument('-t', '--type',
+                        dest='type',
+                        default='t',
+                        help='[optional] Set the type of EclecticIQ entity you '
+                             'wish to create: [t]tp (default), [s]ighting '
+                             'or [i]ndicator. Not all entity types support all '
+                             'observables/extracts! Nested objects in the MCAS '
+                             'Event will be created as indicators and linked to '
+                             'the TTP.')
+    parser.add_argument('-s', '--simulate',
+                        dest='simulate',
+                        action='store_true',
+                        default=False,
+                        help='[optional] Do not actually ingest anything into '
+                             'EIQ, just simulate everything. Mostly useful with '
+                             'the -v/--verbose flag.')
+    parser.add_argument('-n', '--name',
+                        dest='name',
+                        default=settings.TITLETAG,
+                        help='[optional] Override the default TITLETAG name from '
+                             'the configuration file (default: TITLETAG in'
+                             'settings.py)')
+    parser.add_argument('-d', '--duplicate',
+                        dest='duplicate',
+                        action='store_true',
+                        default=False,
+                        help='[optional] Do not update the existing EclecticIQ '
+                             'entity, but create a new one (default: disabled)')
+    args = parser.parse_args()
+    sightings = download(args)
     if sightings:
-        entities = transform(sightings, options)
+        entities = transform(sightings, args)
         if entities:
             for entity, uuid in entities:
-                if options.verbose:
+                if args.verbose:
                     print(entity.get_as_json())
-                eiqIngest(entity.get_as_json(), uuid, options)
+                eiqIngest(entity.get_as_json(), uuid, args)
+
+
+if __name__ == "__main__":
+    main()
