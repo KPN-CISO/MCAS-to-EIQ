@@ -10,16 +10,18 @@ import json
 import pprint
 import socket
 import time
-import requests
-import urllib3
+import urllib
+import ssl
 
 from eiqlib import eiqjson
 from eiqlib import eiqcalls
 
+from tokenlib import tokens
+
 from config import settings
 
 
-def transform(sightings, options):
+def transform(options, GRAPHTOKEN, sightings):
     '''
     Take the MCAS JSON object, extract all attributes into a list.
     '''
@@ -81,17 +83,72 @@ def transform(sightings, options):
                             if type == 'user':
                                 to_ids = True
                                 if name.split('@')[1] in settings.MCASADMAPPING:
-                                    eiqtype = entity.OBSERVABLE_HANDLE
-                                    link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                    classification = entity.CLASSIFICATION_UNKNOWN
-                                    handle = settings.MCASADMAPPING[name.split('@')[1]]
-                                    handle += '\\' + name.split('@')[0]
-                                    entity.add_observable(eiqtype,
-                                                          handle,
-                                                          classification=classification,
-                                                          confidence=confidence,
-                                                          link_type=link_type)                                    
-                                eiqtype = entity.OBSERVABLE_EMAIL
+                                    email = name
+                                    domain = settings.MCASADMAPPING[name.split('@')[1]]
+                                    sslcontext = ssl.create_default_context()
+                                    uri = settings.GRAPHURL + '/users/%s' % email
+                                    uri += '?$select=OnPremisesSamAccountName,'
+                                    uri += 'mail,'
+                                    uri += 'businessPhones,mobilePhone'
+                                    headers = {
+                                        'Content-type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'Authorization': 'Bearer %s' % GRAPHTOKEN,
+                                    }
+                                    request = urllib.request.Request(uri,
+                                                                 headers=headers)
+                                    if not settings.GRAPHSSLVERIFY:
+                                        sslcontext.check_hostname = False
+                                        sslcontext.verify_mode = ssl.CERT_NONE
+                                    response = urllib.request.urlopen(request,
+                                                                      context=sslcontext)
+                                    jsonResponse = json.loads(response.read().decode('utf-8'))
+                                    confidence = entity.CONFIDENCE_HIGH
+                                    print(jsonResponse)
+                                    if 'onPremisesSamAccountName' in jsonResponse:
+                                        eiqtype = entity.OBSERVABLE_HANDLE
+                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        handle = domain + '\\' + jsonResponse['onPremisesSamAccountName']
+                                        entity.add_observable(eiqtype,
+                                                              handle,
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
+                                    if 'mail' in jsonResponse:
+                                        eiqtype = entity.OBSERVABLE_EMAIL
+                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        mail = jsonResponse['mail']
+                                        entity.add_observable(eiqtype,
+                                                              mail,
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
+                                    phones = []
+                                    if 'businessPhones' in jsonResponse:
+                                        for number in jsonResponse['businessPhones']:
+                                            phones.append(number)
+                                            eiqtype = entity.OBSERVABLE_TELEPHONE
+                                            link_type = entity.OBSERVABLE_LINK_OBSERVED
+                                            classification = entity.CLASSIFICATION_UNKNOWN
+                                            entity.add_observable(eiqtype,
+                                                                  number,
+                                                                  classification=classification,
+                                                                  confidence=confidence,
+                                                                  link_type=link_type)
+                                    if 'mobilePhone' in jsonResponse:
+                                        if jsonResponse['mobilePhone']:
+                                            for number in jsonResponse['mobilePhone']:
+                                                phones.append(number)
+                                                eiqtype = entity.OBSERVABLE_TELEPHONE
+                                                link_type = entity.OBSERVABLE_LINK_OBSERVED
+                                                classification = entity.CLASSIFICATION_UNKNOWN
+                                                entity.add_observable(eiqtype,
+                                                                      number,
+                                                                      classification=classification,
+                                                                      confidence=confidence,
+                                                                      link_type=link_type)
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
                             if type == 'discovery_stream':
@@ -172,55 +229,56 @@ def eiqIngest(eiqJSON, uuid, options):
         return response['data']['id']
 
 
-def download(options):
+def download(options, MCASTOKEN):
     '''
     Download the given MCAS Event number from MCAS
     '''
     if options.verbose:
         print("U) Downloading MCAS Alerts ...")
     try:
-        eventurl = settings.MCASURL
-        apiheaders = {
-            "Accept": "application/json",
-            "Content-type": "application/json",
-            "Authorization": "Token {}".format(settings.MCASTOKEN),
+        uri = settings.MCASURL
+        headers = {
+            'Accept': 'application/json',
+            'Content-type': 'application/json',
+            'Authorization': 'Token %s' % settings.MCASTOKEN,
         }
         endtime = int(time.time()) * 1000
         starttime = endtime - (int(options.window) * 1000)
         filters = {
             'date': {'gte': starttime}
         }
-        request_data = {
+        body = {
             'filters': filters,
             'isScan': True,
         }
+        sslcontext = ssl.create_default_context()
         if not settings.MCASSSLVERIFY:
-            if options.verbose:
-                print("W) You have disabled SSL verification for MCAS, " +
-                      "this is not recommended!")
-            urllib3.disable_warnings()
+            sslcontext.check_hostname = False
+            sslcontext.verify_mode = ssl.CERT_NONE
         if options.verbose:
-            print("U) Contacting " + eventurl + " ...")
+            print("U) Contacting " + uri + " ...")
         sightings = []
         has_next = True
+        data = json.dumps(body).encode('utf-8')
+        request = urllib.request.Request(uri,
+                                         data=data,
+                                         headers=headers)
         while has_next:
-            postrequest = requests.post(eventurl,
-                                        json=request_data,
-                                        headers=apiheaders,
-                                        verify=settings.MCASSSLVERIFY).content
-            jsonresponse = json.loads(postrequest.decode('utf-8'))
-            response = jsonresponse.get('data', [])
+            reply = urllib.request.urlopen(request,
+                                           context=sslcontext)
+            jsonResponse = json.loads(reply.read().decode('utf-8'))
+            response = jsonResponse.get('data', [])
             sightings += response
-            has_next = jsonresponse.get('hasNext', False)
-            request_data['filters'] = jsonresponse.get('nextQueryFilters')
+            has_next = jsonResponse.get('hasNext', False)
+            body['filters'] = jsonResponse.get('nextQueryFilters')
         if options.verbose:
             print("U) Got an MCAS response:")
             pprint.pprint(sightings)
         return sightings
-    except IOError:
+    except:
         if options.verbose:
             print("E) An error occured downloading MCAS sightings " +
-                  " from " +
+                  "from " +
                   settings.MCASURL)
         raise
 
@@ -267,14 +325,18 @@ def main():
                         help='[optional] Do not update the existing EclecticIQ '
                              'entity, but create a new one (default: disabled)')
     args = parser.parse_args()
-    sightings = download(args)
+    sightings = download(args, settings.MCASTOKEN)
     if sightings:
-        entities = transform(sightings, args)
-        if entities:
-            for entity, uuid in entities:
-                if args.verbose:
-                    print(entity.get_as_json())
-                eiqIngest(entity.get_as_json(), uuid, args)
+        GRAPHTOKEN = tokens.generateGraphToken(args, settings)
+        if GRAPHTOKEN:
+            entities = transform(args, GRAPHTOKEN, sightings)
+            if entities:
+                for entity, uuid in entities:
+                    if args.verbose:
+                        pprint.pprint(entity.get_as_json())
+                    eiqIngest(entity.get_as_json(), uuid, args)
+    else:
+        print("U) No MCAS and/or GRAPH token available!")
 
 
 if __name__ == "__main__":
