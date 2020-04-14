@@ -13,8 +13,8 @@ import time
 import requests
 import urllib3
 
-import eiqjson
-import eiqcalls
+from eiqlib import eiqjson
+from eiqlib import eiqcalls
 
 from config import settings
 
@@ -79,8 +79,19 @@ def transform(sightings, options):
                                 except socket.error:
                                     pass
                             if type == 'user':
-                                eiqtype = entity.OBSERVABLE_EMAIL
                                 to_ids = True
+                                if name.split('@')[1] in settings.MCASADMAPPING:
+                                    eiqtype = entity.OBSERVABLE_HANDLE
+                                    link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                    classification = entity.CLASSIFICATION_UNKNOWN
+                                    handle = settings.MCASADMAPPING[name.split('@')[1]]
+                                    handle += '\\' + name.split('@')[0]
+                                    entity.add_observable(eiqtype,
+                                                          handle,
+                                                          classification=classification,
+                                                          confidence=confidence,
+                                                          link_type=link_type)                                    
+                                eiqtype = entity.OBSERVABLE_EMAIL
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
                             if type == 'discovery_stream':
