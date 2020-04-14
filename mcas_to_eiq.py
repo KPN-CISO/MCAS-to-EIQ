@@ -104,7 +104,6 @@ def transform(options, GRAPHTOKEN, sightings):
                                                                       context=sslcontext)
                                     jsonResponse = json.loads(response.read().decode('utf-8'))
                                     confidence = entity.CONFIDENCE_HIGH
-                                    print(jsonResponse)
                                     if 'onPremisesSamAccountName' in jsonResponse:
                                         eiqtype = entity.OBSERVABLE_HANDLE
                                         link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
