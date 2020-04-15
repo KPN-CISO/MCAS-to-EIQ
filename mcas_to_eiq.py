@@ -12,6 +12,7 @@ import socket
 import time
 import urllib
 import ssl
+import re
 
 from eiqlib import eiqjson
 from eiqlib import eiqcalls
@@ -44,20 +45,46 @@ def transform(options, GRAPHTOKEN, sightings):
                 entity.set_entity_tlp(tlp)
                 entity.set_entity_reliability(reliability)
                 title = mcasEvent['title']
+                description = mcasEvent['description']
+                confidence = entity.CONFIDENCE_MEDIUM
+                classification = entity.CLASSIFICATION_UNKNOWN
                 entity.set_entity_title(title + " - Event " +
                                         str(eventID) + " - " +
                                         settings.TITLETAG)
                 entity.set_entity_observed_time(observedtime)
-                entity.set_entity_description(mcasEvent['description'])
+                entity.set_entity_description(description)
                 entity.add_observable(entity.OBSERVABLE_URI,
                                       mcasEvent['URL'],
                                       classification=entity.CLASSIFICATION_GOOD,
                                       confidence=entity.CONFIDENCE_HIGH,
                                       link_type=entity.OBSERVABLE_LINK_OBSERVED)
-                entity.set_entity_confidence(entity.CONFIDENCE_MEDIUM)
+                entity.set_entity_confidence(confidence)
                 uuid = str(eventID) + '-MCAS'
                 if 'entities' in mcasEvent:
+                    '''
+                    Try to find and extract all AD usernames from the description
+                    '''
+                    for addomainkey in settings.MCASADMAPPING:
+                        searchtext = description.lower()
+                        addomain = settings.MCASADMAPPING[addomainkey]
+                        regex = ' (' + addomain + '\/[a-zA-Z0-9]+) '
+                        pattern = re.compile(regex)
+                        if (addomain+'/') in searchtext:
+                            result = pattern.findall(searchtext)
+                            for addomainusername in result:
+                                addomainusername = addomainusername.replace('/','\\')
+                                eiqtype = entity.OBSERVABLE_HANDLE
+                                link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                classification = entity.CLASSIFICATION_UNKNOWN
+                                handle = addomainusername
+                                entity.add_observable(eiqtype,
+                                                      handle,
+                                                      classification=classification,
+                                                      confidence=confidence,
+                                                      link_type=link_type)
                     for mcasEntity in mcasEvent['entities']:
+                        to_ids = False
+                        eiqtype = False
                         if mcasEntity['type']:
                             type = mcasEntity['type']
                             name = mcasEntity['label']
@@ -65,8 +92,6 @@ def transform(options, GRAPHTOKEN, sightings):
                             classification = entity.CLASSIFICATION_UNKNOWN
                             to_ids = False
                             eiqtype = False
-                            #if type == 'country':
-                            #    eiqtype = entity.OBSERVABLE_COUNTRY_CODE
                             if type == 'ip':
                                 try:
                                     socket.inet_aton(name)
