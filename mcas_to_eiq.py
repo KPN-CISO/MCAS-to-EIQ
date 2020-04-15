@@ -359,8 +359,8 @@ def main():
                     if args.verbose:
                         pprint.pprint(entity.get_as_json())
                     eiqIngest(entity.get_as_json(), uuid, args)
-    else:
-        print("U) No MCAS and/or GRAPH token available!")
+        else:
+            print("U) No MCAS and/or GRAPH token available!")
 
 
 if __name__ == "__main__":
