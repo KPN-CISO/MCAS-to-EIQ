@@ -11,8 +11,8 @@ MCASURL = 'https://...portal.cloudappsecurity.com/api/v1/alerts/'
 #            generating an API token you want to use:
 MCASTOKEN = 'abcdef1234567890...'
 
-# [Required] MCAS query period in seconds
-MCASTIME = 60
+# [Required] MCAS query period in seconds. Warning: Microsoft has API query limits!
+MCASTIME = 300
 
 # [Optional] Dictionary that maps <email.domain> to the (Azure) AD forest(s) users.
 #            Example: { 'company.com': 'isengard' } will map 'username@company.com'

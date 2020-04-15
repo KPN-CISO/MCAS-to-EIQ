@@ -17,7 +17,7 @@ import re
 from eiqlib import eiqjson
 from eiqlib import eiqcalls
 
-from tokenlib import tokens
+from graphlib import graph
 
 from config import settings
 
@@ -351,7 +351,7 @@ def main():
     args = parser.parse_args()
     sightings = download(args, settings.MCASTOKEN)
     if sightings:
-        GRAPHTOKEN = tokens.generateGraphToken(args, settings)
+        GRAPHTOKEN = graph.generateGraphToken(args, settings)
         if GRAPHTOKEN:
             entities = transform(args, GRAPHTOKEN, sightings)
             if entities:
