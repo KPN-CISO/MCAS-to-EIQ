@@ -128,6 +128,9 @@ def transform(options, GRAPHTOKEN, sightings):
                                     response = urllib.request.urlopen(request,
                                                                       context=sslcontext)
                                     jsonResponse = json.loads(response.read().decode('utf-8'))
+                                    if options.verbose:
+                                        print("U) Got a Graph API response:")
+                                        print(jsonResponse)
                                     confidence = entity.CONFIDENCE_HIGH
                                     if 'onPremisesSamAccountName' in jsonResponse:
                                         eiqtype = entity.OBSERVABLE_HANDLE
@@ -151,8 +154,24 @@ def transform(options, GRAPHTOKEN, sightings):
                                                               link_type=link_type)
                                     phones = []
                                     if 'businessPhones' in jsonResponse:
-                                        for number in jsonResponse['businessPhones']:
-                                            phones.append(number)
+                                        if jsonResponse['businessPhones']:
+                                            numbers = jsonResponse['businessPhones']
+                                            if isinstance(numbers, list):
+                                                for number in numbers:
+                                                    phones.append(number)
+                                            else:
+                                                phones.append(number)
+                                    if 'mobilePhone' in jsonResponse:
+                                        if jsonResponse['mobilePhone']:
+                                            numbers = jsonResponse['mobilePhone']
+                                            if isinstance(numbers, list):
+                                                for number in numbers:
+                                                    phones.append(number)
+                                            else:
+                                                phones.append(number)
+                                    if len(phones) > 0:
+                                        for number in phones:
+                                            print(number)
                                             eiqtype = entity.OBSERVABLE_TELEPHONE
                                             link_type = entity.OBSERVABLE_LINK_OBSERVED
                                             classification = entity.CLASSIFICATION_UNKNOWN
@@ -161,18 +180,6 @@ def transform(options, GRAPHTOKEN, sightings):
                                                                   classification=classification,
                                                                   confidence=confidence,
                                                                   link_type=link_type)
-                                    if 'mobilePhone' in jsonResponse:
-                                        if jsonResponse['mobilePhone']:
-                                            for number in jsonResponse['mobilePhone']:
-                                                phones.append(number)
-                                                eiqtype = entity.OBSERVABLE_TELEPHONE
-                                                link_type = entity.OBSERVABLE_LINK_OBSERVED
-                                                classification = entity.CLASSIFICATION_UNKNOWN
-                                                entity.add_observable(eiqtype,
-                                                                      number,
-                                                                      classification=classification,
-                                                                      confidence=confidence,
-                                                                      link_type=link_type)
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
                             if type == 'discovery_stream':
