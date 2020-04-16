@@ -171,7 +171,6 @@ def transform(options, GRAPHTOKEN, sightings):
                                                 phones.append(number)
                                     if len(phones) > 0:
                                         for number in phones:
-                                            print(number)
                                             eiqtype = entity.OBSERVABLE_TELEPHONE
                                             link_type = entity.OBSERVABLE_LINK_OBSERVED
                                             classification = entity.CLASSIFICATION_UNKNOWN
