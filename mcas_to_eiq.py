@@ -160,7 +160,7 @@ def transform(options, GRAPHTOKEN, sightings):
                                                 for number in numbers:
                                                     phones.append(number)
                                             else:
-                                                phones.append(number)
+                                                phones.append(numbers)
                                     if 'mobilePhone' in jsonResponse:
                                         if jsonResponse['mobilePhone']:
                                             numbers = jsonResponse['mobilePhone']
@@ -168,7 +168,7 @@ def transform(options, GRAPHTOKEN, sightings):
                                                 for number in numbers:
                                                     phones.append(number)
                                             else:
-                                                phones.append(number)
+                                                phones.append(numbers)
                                     if len(phones) > 0:
                                         for number in phones:
                                             eiqtype = entity.OBSERVABLE_TELEPHONE
