@@ -72,7 +72,7 @@ def transform(options, GRAPHTOKEN, sightings):
                         if (addomain+'/') in searchtext:
                             result = pattern.findall(searchtext)
                             for addomainusername in result:
-                                addomainusername = addomainusername.replace('/','\\')
+                                addomainusername = addomainusername.replace('/','\\').lower()
                                 eiqtype = entity.OBSERVABLE_HANDLE
                                 link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
                                 classification = entity.CLASSIFICATION_UNKNOWN
@@ -136,7 +136,7 @@ def transform(options, GRAPHTOKEN, sightings):
                                         eiqtype = entity.OBSERVABLE_HANDLE
                                         link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
                                         classification = entity.CLASSIFICATION_UNKNOWN
-                                        handle = domain + '\\' + jsonResponse['onPremisesSamAccountName']
+                                        handle = domain + '\\' + jsonResponse['onPremisesSamAccountName'].lower()
                                         entity.add_observable(eiqtype,
                                                               handle,
                                                               classification=classification,
@@ -147,11 +147,12 @@ def transform(options, GRAPHTOKEN, sightings):
                                         link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
                                         classification = entity.CLASSIFICATION_UNKNOWN
                                         mail = jsonResponse['mail']
-                                        entity.add_observable(eiqtype,
-                                                              mail,
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
+                                        if mail:
+                                            entity.add_observable(eiqtype,
+                                                                  mail,
+                                                                  classification=classification,
+                                                                  confidence=confidence,
+                                                                  link_type=link_type)
                                     phones = []
                                     if 'businessPhones' in jsonResponse:
                                         if jsonResponse['businessPhones']:
