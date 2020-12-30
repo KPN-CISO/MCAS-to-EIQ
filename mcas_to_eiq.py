@@ -76,7 +76,7 @@ def transform(options, GRAPHTOKEN, sightings):
                             for addomainusername in result:
                                 addomainusername = addomainusername.replace('/','\\').lower()
                                 domain, samAccount = addomainusername.split('\\')
-                                handles.add(samAccount)
+                                handles.add(domain + '\\' + samAccount)
                     for mcasEntity in mcasEvent['entities']:
                         to_ids = False
                         eiqtype = False
@@ -104,7 +104,7 @@ def transform(options, GRAPHTOKEN, sightings):
                                 to_ids = True
                                 if name.split('@')[1] in settings.MCASADMAPPING:
                                     email = name
-                                    domain = settings.MCASADMAPPING[name.split('@')[1]]
+                                    domain = settings.MCASADMAPPING[name.split('@')[1]].lower()
                                     sslcontext = ssl.create_default_context()
                                     uri = settings.GRAPHURL + '/users/%s' % email
                                     uri += '?$select=OnPremisesSamAccountName,'
@@ -128,13 +128,13 @@ def transform(options, GRAPHTOKEN, sightings):
                                         print(jsonResponse)
                                     confidence = entity.CONFIDENCE_HIGH
                                     if 'onPremisesSamAccountName' in jsonResponse:
-                                        handles.add(jsonResponse['onPremisesSamAccountName'].lower())
+                                        handles.add(domain + '\\' + 
+                                                    jsonResponse['onPremisesSamAccountName'].lower())
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
                             if type == 'discovery_user':
                                 fullUser = name.lower().replace('/', '\\')
-                                domain, samAccount = fullUser.split('\\')
-                                handles.add(samAccount)
+                                handles.add(fullUser)
                             if type == 'discovery_stream':
                                 description = entity.get_entity_description()
                                 newdescription = description + '<br />Usercategory: '
@@ -157,21 +157,22 @@ def transform(options, GRAPHTOKEN, sightings):
                                                       confidence=confidence,
                                                       link_type=link_type)
                 for handle in handles:
-                    email = get_email(handle, options)
+                    eiqtype = entity.OBSERVABLE_HANDLE
+                    classification = entity.CLASSIFICATION_UNKNOWN
+                    confidence = entity.CONFIDENCE_HIGH
+                    link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                    entity.add_observable(eiqtype,
+                                          handle,
+                                          classification=classification,
+                                          confidence=confidence,
+                                          link_type=link_type)
+                    samAccount = handle.split('\\')[1]
+                    email = get_email(samAccount, options)
                     if email:
                         person = queryUser(email, options, GRAPHTOKEN)
+                    else:
+                        person = False
                     if person:
-                        print('Person:', person)
-                        for username in person['handle']:
-                            eiqtype = entity.OBSERVABLE_PERSON
-                            classification = entity.CLASSIFICATION_UNKNOWN
-                            confidence = entity.CONFIDENCE_HIGH
-                            link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                            entity.add_observable(eiqtype,
-                                                  username,
-                                                  classification=classification,
-                                                  confidence=confidence,
-                                                  link_type=link_type)
                         for email in person['mail']:
                             eiqtype = entity.OBSERVABLE_EMAIL
                             classification = entity.CLASSIFICATION_UNKNOWN
