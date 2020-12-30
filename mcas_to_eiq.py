@@ -161,13 +161,14 @@ def transform(options, GRAPHTOKEN, sightings):
                     if email:
                         person = queryUser(email, options, GRAPHTOKEN)
                     if person:
-                        for handle in person['handle']:
-                            eiqtype = entity.OBSERVABLE_HANDLE
+                        print('Person:', person)
+                        for username in person['handle']:
+                            eiqtype = entity.OBSERVABLE_PERSON
                             classification = entity.CLASSIFICATION_UNKNOWN
                             confidence = entity.CONFIDENCE_HIGH
                             link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
                             entity.add_observable(eiqtype,
-                                                  handle,
+                                                  username,
                                                   classification=classification,
                                                   confidence=confidence,
                                                   link_type=link_type)
