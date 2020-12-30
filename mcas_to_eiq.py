@@ -215,11 +215,12 @@ def get_email(username, options):
             auth=auth
         )
         if r.status_code != 200:
-            return False  # Webrequest failure
+            return None  # Webrequest failure
         data = r.json()['records']
         if len(data) == 1:
             return data[0]['email']
-        return None  # No hits
+        else:
+            return False  # No hits
     except:
         pass
 
