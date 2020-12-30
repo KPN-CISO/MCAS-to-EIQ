@@ -33,6 +33,7 @@ def transform(options, GRAPHTOKEN, sightings):
         if len(sightings) > 0:
             entityList = []
             for mcasEvent in sightings:
+                handles = set()
                 eventID = mcasEvent['_id']
                 entity = eiqjson.EIQEntity()
                 entity.set_entity(entity.ENTITY_SIGHTING)
@@ -75,41 +76,7 @@ def transform(options, GRAPHTOKEN, sightings):
                             for addomainusername in result:
                                 addomainusername = addomainusername.replace('/','\\').lower()
                                 domain, samAccount = addomainusername.split('\\')
-                                if samAccount:
-                                    email = get_email(samAccount, options)
-                                if email:
-                                    person = queryUser(email, options, GRAPHTOKEN)
-                                if person:
-                                    for handle in person['handle']:
-                                        eiqtype = entity.OBSERVABLE_HANDLE
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        confidence = entity.CONFIDENCE_HIGH
-                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                        entity.add_observable(eiqtype,
-                                                              handle,
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
-                                    for email in person['mail']:
-                                        eiqtype = entity.OBSERVABLE_EMAIL
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        confidence = entity.CONFIDENCE_HIGH
-                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                        entity.add_observable(eiqtype,
-                                                              email,
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
-                                    for number in person['telephone']:
-                                        eiqtype = entity.OBSERVABLE_TELEPHONE
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        confidence = entity.CONFIDENCE_HIGH
-                                        link_type = entity.OBSERVABLE_LINK_OBSERVED
-                                        entity.add_observable(eiqtype,
-                                                              number.replace(' ', ''),
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
+                                handles.add(samAccount)
                     for mcasEntity in mcasEvent['entities']:
                         to_ids = False
                         eiqtype = False
@@ -161,124 +128,13 @@ def transform(options, GRAPHTOKEN, sightings):
                                         print(jsonResponse)
                                     confidence = entity.CONFIDENCE_HIGH
                                     if 'onPremisesSamAccountName' in jsonResponse:
-                                        samAccount = jsonResponse['onPremisesSamAccountName'].lower()
-                                        if samAccount:
-                                            email = get_email(samAccount, options)
-                                        if email:
-                                            person = queryUser(email, options, GRAPHTOKEN)
-                                        if person:
-                                            for handle in person['handle']:
-                                                eiqtype = entity.OBSERVABLE_HANDLE
-                                                classification = entity.CLASSIFICATION_UNKNOWN
-                                                confidence = entity.CONFIDENCE_HIGH
-                                                link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                                entity.add_observable(eiqtype,
-                                                                      handle,
-                                                                      classification=classification,
-                                                                      confidence=confidence,
-                                                                      link_type=link_type)
-                                            for email in person['mail']:
-                                                eiqtype = entity.OBSERVABLE_EMAIL
-                                                classification = entity.CLASSIFICATION_UNKNOWN
-                                                confidence = entity.CONFIDENCE_HIGH
-                                                link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                                entity.add_observable(eiqtype,
-                                                                      email,
-                                                                      classification=classification,
-                                                                      confidence=confidence,
-                                                                      link_type=link_type)
-                                            for number in person['telephone']:
-                                                eiqtype = entity.OBSERVABLE_TELEPHONE
-                                                classification = entity.CLASSIFICATION_UNKNOWN
-                                                confidence = entity.CONFIDENCE_HIGH
-                                                link_type = entity.OBSERVABLE_LINK_OBSERVED
-                                                entity.add_observable(eiqtype,
-                                                                      number.replace(' ', ''),
-                                                                      classification=classification,
-                                                                      confidence=confidence,
-                                                                      link_type=link_type)
-                                    if 'mail' in jsonResponse:
-                                        eiqtype = entity.OBSERVABLE_EMAIL
-                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        mail = jsonResponse['mail']
-                                        if mail:
-                                            entity.add_observable(eiqtype,
-                                                                  mail,
-                                                                  classification=classification,
-                                                                  confidence=confidence,
-                                                                  link_type=link_type)
-                                    phones = []
-                                    if 'businessPhones' in jsonResponse:
-                                        if jsonResponse['businessPhones']:
-                                            numbers = jsonResponse['businessPhones']
-                                            if isinstance(numbers, list):
-                                                for number in numbers:
-                                                    phones.append(number)
-                                            else:
-                                                phones.append(numbers)
-                                    if 'mobilePhone' in jsonResponse:
-                                        if jsonResponse['mobilePhone']:
-                                            numbers = jsonResponse['mobilePhone']
-                                            if isinstance(numbers, list):
-                                                for number in numbers:
-                                                    phones.append(number)
-                                            else:
-                                                phones.append(numbers)
-                                    if len(phones) > 0:
-                                        for number in phones:
-                                            eiqtype = entity.OBSERVABLE_TELEPHONE
-                                            link_type = entity.OBSERVABLE_LINK_OBSERVED
-                                            classification = entity.CLASSIFICATION_UNKNOWN
-                                            entity.add_observable(eiqtype,
-                                                                  number,
-                                                                  classification=classification,
-                                                                  confidence=confidence,
-                                                                  link_type=link_type)
+                                        handles.add(jsonResponse['onPremisesSamAccountName'].lower())
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
                             if type == 'discovery_user':
-                                description = entity.get_entity_description()
-                                newdescription = description + '<br />User: '
-                                newdescription += name
-                                entity.set_entity_description(newdescription)
                                 fullUser = name.lower().replace('/', '\\')
                                 domain, samAccount = fullUser.split('\\')
-                                if samAccount:
-                                    email = get_email(samAccount, options)
-                                if email:
-                                    person = queryUser(email, options, GRAPHTOKEN)
-                                if person:
-                                    for handle in person['handle']:
-                                        eiqtype = entity.OBSERVABLE_HANDLE
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        confidence = entity.CONFIDENCE_HIGH
-                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                        entity.add_observable(eiqtype,
-                                                              handle,
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
-                                    for email in person['mail']:
-                                        eiqtype = entity.OBSERVABLE_EMAIL
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        confidence = entity.CONFIDENCE_HIGH
-                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                        entity.add_observable(eiqtype,
-                                                              email,
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
-                                    for number in person['telephone']:
-                                        eiqtype = entity.OBSERVABLE_TELEPHONE
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        confidence = entity.CONFIDENCE_HIGH
-                                        link_type = entity.OBSERVABLE_LINK_OBSERVED
-                                        entity.add_observable(eiqtype,
-                                                              number.replace(' ', ''),
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
+                                handles.add(samAccount)
                             if type == 'discovery_stream':
                                 description = entity.get_entity_description()
                                 newdescription = description + '<br />Usercategory: '
@@ -300,6 +156,41 @@ def transform(options, GRAPHTOKEN, sightings):
                                                       classification=classification,
                                                       confidence=confidence,
                                                       link_type=link_type)
+                for handle in handles:
+                    email = get_email(handle, options)
+                    if email:
+                        person = queryUser(email, options, GRAPHTOKEN)
+                    if person:
+                        for handle in person['handle']:
+                            eiqtype = entity.OBSERVABLE_HANDLE
+                            classification = entity.CLASSIFICATION_UNKNOWN
+                            confidence = entity.CONFIDENCE_HIGH
+                            link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                            entity.add_observable(eiqtype,
+                                                  handle,
+                                                  classification=classification,
+                                                  confidence=confidence,
+                                                  link_type=link_type)
+                        for email in person['mail']:
+                            eiqtype = entity.OBSERVABLE_EMAIL
+                            classification = entity.CLASSIFICATION_UNKNOWN
+                            confidence = entity.CONFIDENCE_HIGH
+                            link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                            entity.add_observable(eiqtype,
+                                                  email,
+                                                  classification=classification,
+                                                  confidence=confidence,
+                                                  link_type=link_type)
+                        for number in person['telephone']:
+                            eiqtype = entity.OBSERVABLE_TELEPHONE
+                            classification = entity.CLASSIFICATION_UNKNOWN
+                            confidence = entity.CONFIDENCE_HIGH
+                            link_type = entity.OBSERVABLE_LINK_OBSERVED
+                            entity.add_observable(eiqtype,
+                                                  number.replace(' ', ''),
+                                                  classification=classification,
+                                                  confidence=confidence,
+                                                  link_type=link_type)
                 entityList.append((entity, uuid))
             return entityList
         else:
@@ -367,17 +258,17 @@ def queryUser(email, options, GRAPHTOKEN):
                 numbers = jsonResponse['businessPhones']
             if isinstance(numbers, list):
                 for number in numbers:
-                    person['telephone'].add(number)
+                    person['telephone'].add(number.replace(' ',''))
             else:
-                person['telephone'].add(numbers)
+                person['telephone'].add(numbers.replace(' ',''))
     if 'mobilePhone' in jsonResponse:
         if jsonResponse['mobilePhone']:
             numbers = jsonResponse['mobilePhone']
             if isinstance(numbers, list):
                 for number in numbers:
-                    person['telephone'].add(number)
+                    person['telephone'].add(number.replace(' ',''))
             else:
-                person['telephone'].add(numbers)
+                person['telephone'].add(numbers.replace(' ',''))
     return(person)
 
 
