@@ -8,6 +8,7 @@ import argparse
 import datetime
 import json
 import pprint
+import requests
 import socket
 import time
 import urllib
@@ -73,15 +74,42 @@ def transform(options, GRAPHTOKEN, sightings):
                             result = pattern.findall(searchtext)
                             for addomainusername in result:
                                 addomainusername = addomainusername.replace('/','\\').lower()
-                                eiqtype = entity.OBSERVABLE_HANDLE
-                                link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                classification = entity.CLASSIFICATION_UNKNOWN
-                                handle = addomainusername
-                                entity.add_observable(eiqtype,
-                                                      handle,
-                                                      classification=classification,
-                                                      confidence=confidence,
-                                                      link_type=link_type)
+                                domain, samAccount = addomainusername.split('\\')
+                                if samAccount:
+                                    email = get_email(samAccount, options)
+                                if email:
+                                    person = queryUser(email, options, GRAPHTOKEN)
+                                if person:
+                                    for handle in person['handle']:
+                                        eiqtype = entity.OBSERVABLE_HANDLE
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        confidence = entity.CONFIDENCE_HIGH
+                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                        entity.add_observable(eiqtype,
+                                                              handle,
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
+                                    for email in person['mail']:
+                                        eiqtype = entity.OBSERVABLE_EMAIL
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        confidence = entity.CONFIDENCE_HIGH
+                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                        entity.add_observable(eiqtype,
+                                                              email,
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
+                                    for number in person['telephone']:
+                                        eiqtype = entity.OBSERVABLE_TELEPHONE
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        confidence = entity.CONFIDENCE_HIGH
+                                        link_type = entity.OBSERVABLE_LINK_OBSERVED
+                                        entity.add_observable(eiqtype,
+                                                              number.replace(' ', ''),
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
                     for mcasEntity in mcasEvent['entities']:
                         to_ids = False
                         eiqtype = False
@@ -121,7 +149,7 @@ def transform(options, GRAPHTOKEN, sightings):
                                         'Authorization': 'Bearer %s' % GRAPHTOKEN,
                                     }
                                     request = urllib.request.Request(uri,
-                                                                 headers=headers)
+                                                                     headers=headers)
                                     if not settings.GRAPHSSLVERIFY:
                                         sslcontext.check_hostname = False
                                         sslcontext.verify_mode = ssl.CERT_NONE
@@ -133,15 +161,42 @@ def transform(options, GRAPHTOKEN, sightings):
                                         print(jsonResponse)
                                     confidence = entity.CONFIDENCE_HIGH
                                     if 'onPremisesSamAccountName' in jsonResponse:
-                                        eiqtype = entity.OBSERVABLE_HANDLE
-                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
-                                        classification = entity.CLASSIFICATION_UNKNOWN
-                                        handle = domain + '\\' + jsonResponse['onPremisesSamAccountName'].lower()
-                                        entity.add_observable(eiqtype,
-                                                              handle,
-                                                              classification=classification,
-                                                              confidence=confidence,
-                                                              link_type=link_type)
+                                        samAccount = jsonResponse['onPremisesSamAccountName'].lower()
+                                        if samAccount:
+                                            email = get_email(samAccount, options)
+                                        if email:
+                                            person = queryUser(email, options, GRAPHTOKEN)
+                                        if person:
+                                            for handle in person['handle']:
+                                                eiqtype = entity.OBSERVABLE_HANDLE
+                                                classification = entity.CLASSIFICATION_UNKNOWN
+                                                confidence = entity.CONFIDENCE_HIGH
+                                                link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                                entity.add_observable(eiqtype,
+                                                                      handle,
+                                                                      classification=classification,
+                                                                      confidence=confidence,
+                                                                      link_type=link_type)
+                                            for email in person['mail']:
+                                                eiqtype = entity.OBSERVABLE_EMAIL
+                                                classification = entity.CLASSIFICATION_UNKNOWN
+                                                confidence = entity.CONFIDENCE_HIGH
+                                                link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                                entity.add_observable(eiqtype,
+                                                                      email,
+                                                                      classification=classification,
+                                                                      confidence=confidence,
+                                                                      link_type=link_type)
+                                            for number in person['telephone']:
+                                                eiqtype = entity.OBSERVABLE_TELEPHONE
+                                                classification = entity.CLASSIFICATION_UNKNOWN
+                                                confidence = entity.CONFIDENCE_HIGH
+                                                link_type = entity.OBSERVABLE_LINK_OBSERVED
+                                                entity.add_observable(eiqtype,
+                                                                      number.replace(' ', ''),
+                                                                      classification=classification,
+                                                                      confidence=confidence,
+                                                                      link_type=link_type)
                                     if 'mail' in jsonResponse:
                                         eiqtype = entity.OBSERVABLE_EMAIL
                                         link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
@@ -182,6 +237,48 @@ def transform(options, GRAPHTOKEN, sightings):
                                                                   link_type=link_type)
                             if type == 'account':
                                 eiqtype = entity.OBSERVABLE_PERSON
+                            if type == 'discovery_user':
+                                description = entity.get_entity_description()
+                                newdescription = description + '<br />User: '
+                                newdescription += name
+                                entity.set_entity_description(newdescription)
+                                fullUser = name.lower().replace('/', '\\')
+                                domain, samAccount = fullUser.split('\\')
+                                if samAccount:
+                                    email = get_email(samAccount, options)
+                                if email:
+                                    person = queryUser(email, options, GRAPHTOKEN)
+                                if person:
+                                    for handle in person['handle']:
+                                        eiqtype = entity.OBSERVABLE_HANDLE
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        confidence = entity.CONFIDENCE_HIGH
+                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                        entity.add_observable(eiqtype,
+                                                              handle,
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
+                                    for email in person['mail']:
+                                        eiqtype = entity.OBSERVABLE_EMAIL
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        confidence = entity.CONFIDENCE_HIGH
+                                        link_type = entity.OBSERVABLE_LINK_TEST_MECHANISM
+                                        entity.add_observable(eiqtype,
+                                                              email,
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
+                                    for number in person['telephone']:
+                                        eiqtype = entity.OBSERVABLE_TELEPHONE
+                                        classification = entity.CLASSIFICATION_UNKNOWN
+                                        confidence = entity.CONFIDENCE_HIGH
+                                        link_type = entity.OBSERVABLE_LINK_OBSERVED
+                                        entity.add_observable(eiqtype,
+                                                              number.replace(' ', ''),
+                                                              classification=classification,
+                                                              confidence=confidence,
+                                                              link_type=link_type)
                             if type == 'discovery_stream':
                                 description = entity.get_entity_description()
                                 newdescription = description + '<br />Usercategory: '
@@ -215,6 +312,73 @@ def transform(options, GRAPHTOKEN, sightings):
               "by MCAS:")
         print(sightings)
         raise
+
+
+def get_email(username, options):
+    auth = requests.auth.HTTPBasicAuth(settings.SNOWUSER, settings.SNOWPASS)
+    if username.startswith(settings.PREAMBLE):
+        username = username[len(settings.PREAMBLE):]
+    try:
+        r = requests.get(
+            settings.SNOWURL+username,
+            auth=auth
+        )
+        if r.status_code != 200:
+            return False  # Webrequest failure
+        data = r.json()['records']
+        if len(data) == 1:
+            return data[0]['email']
+        return None  # No hits
+    except:
+        pass
+
+
+def queryUser(email, options, GRAPHTOKEN):
+    person = {'handle': set(),
+              'mail': set(),
+              'telephone': set()}
+    emailuser, emaildomain = email.split('@')
+    sslcontext = ssl.create_default_context()
+    if not settings.GRAPHSSLVERIFY:
+        if options.verbose:
+            print("W) You have disabled SSL verification for Graph, " +
+                  "this is not recommended!")
+        sslcontext.check_hostname = False
+        sslcontext.verify_mode = ssl.CERT_NONE
+    uri = settings.GRAPHURL + '/users/%s' % email
+    uri += '?$select=OnPremisesSamAccountName,'
+    uri += 'mail,'
+    uri += 'businessPhones,mobilePhone'
+    headers = {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer %s' % GRAPHTOKEN,
+    }
+    request = urllib.request.Request(uri, headers=headers)
+    response = urllib.request.urlopen(request, context=sslcontext)
+    jsonResponse = json.loads(response.read().decode('utf-8'))
+    if 'mail' in jsonResponse:
+        if jsonResponse['mail']:
+            person['mail'].add(jsonResponse['mail'].lower())
+    if 'businessPhones' in jsonResponse:
+        if jsonResponse['businessPhones']:
+            numbers = jsonResponse['businessPhones']
+            if isinstance(numbers, list):
+                numbers = jsonResponse['businessPhones']
+            if isinstance(numbers, list):
+                for number in numbers:
+                    person['telephone'].add(number)
+            else:
+                person['telephone'].add(numbers)
+    if 'mobilePhone' in jsonResponse:
+        if jsonResponse['mobilePhone']:
+            numbers = jsonResponse['mobilePhone']
+            if isinstance(numbers, list):
+                for number in numbers:
+                    person['telephone'].add(number)
+            else:
+                person['telephone'].add(numbers)
+    return(person)
 
 
 def eiqIngest(eiqJSON, uuid, options):

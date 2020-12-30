@@ -44,6 +44,13 @@ GRAPHCLIENTSECRET = '<client-secret>'
 GRAPHTOKENURI = 'https://login.microsoftonline.com/%s/oauth2/token' % (TENANTID)
 GRAPHSSLVERIFY = True
 
+## Settings for SNOW lookups
+
+SNOWUSER = '<username>'
+SNOWPASS = '<password>'
+SNOWURL = '<snowurl>'
+PREAMBLE = '<special account case>'
+
 ## Settings for EclecticIQ
 
 # [Required] EIQ hostname. Should be a complete URI: 'https://myeiq.localdomain'
